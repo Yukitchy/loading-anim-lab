@@ -52,7 +52,6 @@ h1{margin:0;font-size:clamp(19px,5.6vw,30px);line-height:1.3;white-space:nowrap;
 .btn:active{transform:scale(.97)}
 .btn.play{background:var(--ink);color:var(--bg)}
 .btn.play svg{width:12px;height:12px}
-.card.sel .btn.pick{background:var(--amber);border-color:var(--amber)}
 
 /* ---------- phone mock ---------- */
 .mock{width:100%;max-width:390px;height:690px;position:relative;border-radius:46px;background:var(--ink);padding:8px;
@@ -274,17 +273,6 @@ svg.foamsvg path{fill:var(--foam);stroke:var(--ink);stroke-width:2.6;stroke-line
   42%{opacity:1;transform:translate(calc(var(--dx)*.6),var(--dy)) scale(1);animation-timing-function:cubic-bezier(.5,0,.9,.5)}
   56%,100%{opacity:0;transform:translate(var(--dx),calc(var(--dy) + 22px)) scale(.8)}}
 
-/* ---------- selection bar ---------- */
-.selbar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:30;max-width:520px;margin:0 auto;
-  background:var(--ink);color:var(--bg);border-radius:20px;padding:12px 18px;display:flex;align-items:center;gap:12px;
-  box-shadow:0 14px 34px rgba(18,18,18,.28)}
-.selbar .dot{width:12px;height:12px;border-radius:50%;background:var(--sub);flex:none;transition:background .3s}
-.selbar.has .dot{background:var(--amber)}
-.selbar .k{font-size:13px;font-weight:700;color:rgba(241,239,234,.65);white-space:nowrap}
-.selbar .v{font-size:15px;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.selbar .v.flash{animation:flash .5s var(--out)}
-@keyframes flash{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
-.selbar .d{font-size:13px;font-weight:700;color:var(--amber);font-variant-numeric:tabular-nums;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -307,13 +295,6 @@ svg.foamsvg path{fill:var(--foam);stroke:var(--ink);stroke-width:2.6;stroke-line
 </div>
 
 <main class="grid" id="grid"></main>
-
-<div class="selbar" id="selbar" aria-live="polite">
-  <span class="dot"></span>
-  <span class="k">選択中</span>
-  <span class="v" id="selv">まだ選んでいません</span>
-  <span class="d" id="seld">1.7秒</span>
-</div>
 
 <!-- shared parts -->
 <template id="tpl-app">
@@ -415,19 +396,15 @@ grid.innerHTML = PLANS.map(p=>`
     </div></div>
     <div class="acts">
       <button type="button" class="btn play"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>再生</button>
-      <button type="button" class="btn pick">これにする</button>
     </div>
   </section>`).join('');
 
-let dur = 1700, picked = null;
-const selbar = document.getElementById('selbar'), selv = document.getElementById('selv'), seld = document.getElementById('seld');
-const fmt = ms => (ms/1000).toFixed(1)+'秒';
+let dur = 1700;
 
 document.getElementById('seg').addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
   dur = +b.dataset.ms;
   document.querySelectorAll('#seg button').forEach(x=>x.setAttribute('aria-checked', x===b));
-  seld.textContent = fmt(dur);
 });
 
 function restart(ov){ ov.classList.remove('run'); void ov.offsetWidth; ov.classList.add('run'); }
@@ -439,21 +416,9 @@ function play(card){
   card._t1 = setTimeout(()=>{ ov.classList.add('out'); app.classList.add('open'); }, dur);
   card._t2 = setTimeout(()=>{ ov.classList.remove('out'); restart(ov); setTimeout(()=>app.classList.remove('open'),400); }, dur + 3200);
 }
-function pick(card){
-  const n = +card.dataset.n; picked = n;
-  document.querySelectorAll('.card').forEach(c=>{
-    const on = c===card; c.classList.toggle('sel', on);
-    c.querySelector('.pick').textContent = on ? '✓ 選択中' : 'これにする';
-  });
-  const p = PLANS[n-1];
-  selv.textContent = `案${n}「${p.name}」`;
-  selv.classList.remove('flash'); void selv.offsetWidth; selv.classList.add('flash');
-  selbar.classList.add('has');
-}
 grid.addEventListener('click', e=>{
   const card = e.target.closest('.card'); if(!card) return;
   if(e.target.closest('.play')) play(card);
-  else if(e.target.closest('.pick')) pick(card);
 });
 
 // 画面外のモックはアニメを止めて軽くする

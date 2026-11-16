@@ -59,8 +59,6 @@ main{max-width:1320px;margin:0 auto;padding:28px 16px 40px;display:grid;gap:56px
   transition:transform .12s var(--spring),background .25s var(--out),color .25s,box-shadow .25s}
 .btn:active{transform:scale(.97)}
 .btn.play{background:var(--ink);color:var(--bg)}
-.btn.pick{box-shadow:inset 0 0 0 1.5px var(--ink)}
-.card.sel .btn.pick{background:var(--g);color:#fff;box-shadow:none}
 .back{align-self:center;font-size:13px;font-weight:700;color:var(--sub);height:28px;padding:0 8px;
   opacity:0;pointer-events:none;transition:opacity .3s}
 .card.shown .back{opacity:1;pointer-events:auto}
@@ -142,19 +140,8 @@ main{max-width:1320px;margin:0 auto;padding:28px 16px 40px;display:grid;gap:56px
 .sway{animation:sway 3.6s cubic-bezier(.45,0,.55,1) infinite alternate}
 @keyframes sway{from{transform:translateX(-1.5px)}to{transform:translateX(1.5px)}}
 
-/* ---------- selection bar ---------- */
-.pickbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--ink);color:var(--bg);
-  padding:14px 16px calc(14px + env(safe-area-inset-bottom))}
-.pickbar .in{max-width:1320px;margin:0 auto;display:flex;align-items:center;gap:12px}
-.pickbar .lab{font-size:13px;font-weight:800;letter-spacing:.12em;color:#A9A59D;white-space:nowrap}
-.pickbar .dot{width:10px;height:10px;border-radius:50%;background:#4A4843;flex:none;transition:background .3s}
-.pickbar.has .dot{background:var(--g);box-shadow:0 0 0 4px rgba(27,138,63,.25)}
-.pickbar .val{font-size:15px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pickbar .val.bump{animation:bump .5s var(--out)}
-@keyframes bump{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-
 @media(prefers-reduced-motion:reduce){
-  .wisp,.bub,.curl,.tw,.sway,.pickbar .val.bump{animation:none!important}
+  .wisp,.bub,.curl,.tw,.sway{animation:none!important}
   .wisp,.bub,.tw{opacity:.6}
 }
 </style>
@@ -225,14 +212,6 @@ main{max-width:1320px;margin:0 auto;padding:28px 16px 40px;display:grid;gap:56px
 </div>
 
 <main id="grid"></main>
-
-<div class="pickbar" id="pickbar">
-  <div class="in">
-    <span class="dot"></span>
-    <span class="lab">選択中</span>
-    <span class="val" id="pickval">まだ選んでいません</span>
-  </div>
-</div>
 
 <script>
 (() => {
@@ -600,14 +579,12 @@ const cards = V.map((v,i) => {
     </div></div>
     <div class="acts">
       <button type="button" class="btn play">再生</button>
-      <button type="button" class="btn pick">これにする</button>
     </div>
     <button type="button" class="back">ループ表示に戻す</button>`;
   grid.appendChild(el);
   const c = {v, i, el, ov:el.querySelector('.ov'), stage:el.querySelector('.stage'), brand:el.querySelector('.brand'),
     app:el.querySelector('.app'), playBtn:el.querySelector('.play'), anims:[], extra:[], timers:[], state:'loop', visible:true};
   c.playBtn.addEventListener('click', () => play(c));
-  el.querySelector('.pick').addEventListener('click', () => select(i));
   el.querySelector('.back').addEventListener('click', () => toLoop(c, true));
   return c;
 });
@@ -692,32 +669,10 @@ segBtns.forEach(b => b.addEventListener('click', () => {
   D = +b.dataset.d;
   segBtns.forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
   cards.forEach(c => { if (c.state === 'loop') startTL(c, true); ui(c); });
-  renderPick();
 }));
 document.getElementById('allplay').addEventListener('click', () => cards.forEach(play));
 
-/* 選択バー */
-let sel = null;
-try { const s = localStorage.getItem('eatmap-cloche-pick'); if (s !== null && V[+s]) sel = +s; } catch(_) {}
-const bar = document.getElementById('pickbar'), val = document.getElementById('pickval');
-function renderPick(bump){
-  cards.forEach(c => {
-    c.el.classList.toggle('sel', c.i === sel);
-    c.el.querySelector('.pick').textContent = c.i === sel ? '✓ 選択中' : 'これにする';
-  });
-  bar.classList.toggle('has', sel !== null);
-  val.textContent = sel === null ? 'まだ選んでいません'
-    : `案${sel+1}「${V[sel].name}」 · 表示 ${(D/1000).toFixed(1)}秒`;
-  if (bump) { val.classList.remove('bump'); void val.offsetWidth; val.classList.add('bump'); }
-}
-function select(i){
-  sel = i;
-  try { localStorage.setItem('eatmap-cloche-pick', String(i)); } catch(_) {}
-  renderPick(true);
-}
-
 cards.forEach(c => toLoop(c, false));
-renderPick();
 })();
 </script>
 </body>
