@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DRINK MAP ローディング案</title>
+<style>
+:root{
+  --bg:#F1EFEA; --ink:#121212; --amber:#F4B223; --amber2:#F5B454; --sub:#5D5A54;
+  --foam:#FBFAF6; --line:rgba(93,90,84,.22);
+  --out:cubic-bezier(.22,1,.36,1); --io:cubic-bezier(.65,0,.35,1); --spring:cubic-bezier(.34,1.56,.64,1);
+  --dur:1.7s;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);overflow-x:clip;
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",Meiryo,sans-serif;
+  line-height:1.7;-webkit-font-smoothing:antialiased;padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+body,p,h1,h2,span,b,button,div{word-break:auto-phrase;line-break:strict}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* ---------- page head ---------- */
+.head{max-width:1240px;margin:0 auto;padding:28px 16px 6px}
+.eyebrow{font-size:13px;font-weight:800;letter-spacing:.16em;color:var(--sub);margin:0 0 6px}
+.eyebrow i{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--amber);margin-right:8px;vertical-align:1px}
+h1{margin:0;font-size:clamp(19px,5.6vw,30px);line-height:1.3;white-space:nowrap;letter-spacing:.01em;font-weight:800}
+.lead{margin:10px 0 0;font-size:14px;color:var(--sub);max-width:60ch;text-wrap:pretty}
+
+.ctrl{position:sticky;top:0;z-index:20;background:rgba(241,239,234,.92);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.ctrl .in{max-width:1240px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.ctrl .lab{font-size:13px;font-weight:700;color:var(--sub);white-space:nowrap}
+.seg{display:flex;background:rgba(93,90,84,.12);border-radius:999px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;font-size:14px;font-weight:700;padding:6px 14px;border-radius:999px;
+  font-variant-numeric:tabular-nums;transition:background .2s var(--out),color .2s}
+.seg button[aria-checked="true"]{background:var(--ink);color:var(--bg)}
+
+/* ---------- cards ---------- */
+.grid{max-width:1240px;margin:0 auto;padding:8px 16px 24px;display:grid;gap:44px 32px;
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,358px),1fr))}
+.card{padding-top:22px;border-top:1px solid var(--line);min-width:0}
+.no{font-size:13px;font-weight:800;letter-spacing:.14em;color:var(--sub)}
+.no b{display:inline-block;background:var(--amber);color:var(--ink);border-radius:6px;padding:0 7px;margin-right:8px;letter-spacing:.06em}
+.card h2{margin:4px 0 2px;font-size:21px;line-height:1.4}
+.card .desc{margin:0 0 16px;font-size:14px;color:var(--sub);text-wrap:pretty}
+.card.sel .no b{background:var(--ink);color:var(--amber)}
+
+.acts{display:flex;gap:10px;margin-top:14px;max-width:390px}
+.btn{flex:1;border:2px solid var(--ink);border-radius:999px;padding:11px 10px;font-size:15px;font-weight:800;background:transparent;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s var(--spring),background .2s,color .2s}
+.btn:active{transform:scale(.97)}
+.btn.play{background:var(--ink);color:var(--bg)}
+.btn.play svg{width:12px;height:12px}
+.card.sel .btn.pick{background:var(--amber);border-color:var(--amber)}
+
+/* ---------- phone mock ---------- */
+.mock{width:100%;max-width:390px;height:690px;position:relative;border-radius:46px;background:var(--ink);padding:8px;
+  box-shadow:0 2px 6px rgba(60,45,10,.10),0 24px 50px rgba(60,45,10,.16)}
+.scr{position:relative;width:100%;height:100%;border-radius:38px;overflow:hidden;background:var(--bg);isolation:isolate}
+.island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:104px;height:30px;border-radius:20px;background:var(--ink);z-index:9}
+.sbar{position:absolute;inset:0 0 auto;height:50px;z-index:8;display:flex;align-items:center;justify-content:space-between;
+  padding:4px 28px 0 34px;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;pointer-events:none}
+.sbar svg{height:12px;width:auto}
+
+/* ---------- fake app (下のコンテンツ) ---------- */
+.app{position:absolute;inset:0;display:flex;flex-direction:column;padding-top:52px}
+.apphd{display:flex;align-items:center;justify-content:space-between;padding:6px 20px 10px}
+.logo{font-weight:900;letter-spacing:.2em;font-size:15px;display:flex;align-items:center;gap:8px}
+.logo i{width:10px;height:10px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 2px var(--ink)}
+.area{font-size:13px;font-weight:700;color:var(--sub)}
+.search{margin:0 16px 10px;border:2px solid var(--ink);border-radius:999px;padding:9px 16px;font-size:14px;color:var(--sub);display:flex;gap:10px;align-items:center}
+.search svg{width:15px;height:15px;flex:none}
+.map{position:relative;flex:1;min-height:0}
+.map svg{position:absolute;inset:0;width:100%;height:100%}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--foam);border-radius:24px 24px 0 0;padding:10px 20px 22px;
+  box-shadow:0 -10px 30px rgba(60,45,10,.10)}
+.grab{width:38px;height:5px;border-radius:3px;background:rgba(93,90,84,.3);margin:0 auto 12px}
+.sheet h3{margin:0 0 8px;font-size:16px}
+.sheet h3 span{font-size:13px;color:var(--sub);font-weight:700;margin-left:6px}
+.row{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.row .ic{width:34px;height:34px;border-radius:10px;background:var(--amber);display:grid;place-items:center;flex:none}
+.row .ic svg{width:18px;height:18px}
+.row .t{flex:1;min-width:0}
+.row .t b{display:block;font-size:14px;line-height:1.4}
+.row .t span{font-size:13px;color:var(--sub)}
+.row .km{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+
+.app.open .apphd,.app.open .search{animation:rise .6s var(--out) both}
+.app.open .search{animation-delay:.05s}
+.app.open .sheet{animation:sheet .8s var(--out) .12s both}
+.app.open .pin{animation:pop .55s var(--spring) both;animation-delay:calc(.2s + var(--i)*70ms)}
+.pin{transform-box:fill-box;transform-origin:50% 100%}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes sheet{from{transform:translateY(60%)}to{transform:none}}
+@keyframes pop{from{opacity:0;transform:translateY(-10px) scale(.4)}to{opacity:1;transform:none}}
+
+/* ---------- overlay ---------- */
+.ov{position:absolute;inset:0;z-index:5;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+  transition:opacity .35s ease,transform .35s ease,visibility 0s}
+.ov.out{opacity:0;visibility:hidden;transform:scale(1.04);
+  transition:opacity .55s cubic-bezier(.4,0,.2,1),transform .75s var(--out),visibility 0s linear .75s}
+.brand{text-align:center}
+.brand b{display:block;font-size:16px;font-weight:900;letter-spacing:.32em;padding-left:.32em}
+.brand span{display:block;margin-top:4px;font-size:13px;color:var(--sub);letter-spacing:.06em}
+.ov.run .brand{animation:rise .7s var(--out) .1s both}
+.stage{position:relative;width:180px;height:172px}
+.mock:not(.vis) .ov *,.mock:not(.vis) .ov *::before,.mock:not(.vis) .ov *::after{animation-play-state:paused!important}
+
+/* common beer parts */
+.glass{position:absolute;border:3px solid var(--ink);overflow:hidden;background:var(--bg);z-index:2}
+.liq{position:absolute;inset:0;background:linear-gradient(180deg,var(--amber2),var(--amber) 70%)}
+.liq::before{content:"";position:absolute;left:0;right:0;top:0;height:16px;background:var(--foam);border-bottom:2px solid rgba(18,18,18,.12)}
+.glint{position:absolute;left:9px;top:22px;width:5px;height:46%;border-radius:3px;background:rgba(251,250,246,.55);z-index:3}
+.hdl{position:absolute;border:3px solid var(--ink);border-left:0;border-radius:0 18px 18px 0;z-index:1}
+.bub{position:absolute;bottom:6px;width:6px;height:6px;border-radius:50%;border:1.5px solid var(--foam);opacity:0}
+.ov.run .bub{animation:bub 1.5s cubic-bezier(.5,0,.85,.6) infinite}
+@keyframes bub{0%{transform:translateY(0);opacity:0}15%{opacity:.95}100%{transform:translateY(-62px);opacity:0}}
+.floor{position:absolute;height:3px;border-radius:2px;background:var(--ink)}
+svg.foamsvg{position:absolute;overflow:visible;z-index:3}
+svg.foamsvg path{fill:var(--foam);stroke:var(--ink);stroke-width:2.6;stroke-linejoin:round}
+
+/* ===== 案1 注ぐ ===== */
+.p1 .stream{position:absolute;left:68px;top:0;width:8px;height:64px;border-radius:4px;background:var(--amber);
+  box-shadow:inset 0 0 0 2px rgba(18,18,18,.0);z-index:1;clip-path:inset(0 0 100% 0)}
+.p1 .glass{left:30px;bottom:6px;width:80px;height:104px;border-radius:5px 5px 16px 16px}
+.p1 .hdl{left:107px;bottom:28px;width:28px;height:54px}
+.p1 .liq{transform:translateY(102%)}
+.p1 .crown{left:26px;bottom:98px;width:88px;height:26px;transform-origin:50% 100%;transform:scale(.7,0)}
+.ov.run .p1 .stream{animation:p1str 3s infinite}
+.ov.run .p1 .liq{animation:p1liq 3s infinite}
+.ov.run .p1 .crown{animation:p1crown 3s infinite}
+@keyframes p1str{
+  0%{clip-path:inset(0 0 100% 0);animation-timing-function:cubic-bezier(.5,0,.3,1)}
+  10%,56%{clip-path:inset(0 0 0 0);animation-timing-function:cubic-bezier(.6,0,.4,1)}
+  66%,100%{clip-path:inset(100% 0 0 0)}}
+@keyframes p1liq{
+  0%,8%{transform:translateY(102%);opacity:1;animation-timing-function:cubic-bezier(.35,.55,.25,1)}
+  64%{transform:translateY(0)}
+  88%{transform:translateY(0);opacity:1;animation-timing-function:ease-in}
+  97%,100%{transform:translateY(0);opacity:0}}
+@keyframes p1crown{
+  0%,56%{transform:scale(.7,0);opacity:1;animation-timing-function:cubic-bezier(.3,1.5,.6,1)}
+  70%{transform:scale(1,1)}
+  88%{transform:scale(1,1);opacity:1;animation-timing-function:ease-in}
+  97%,100%{transform:scale(1,1);opacity:0}}
+
+/* ===== 案2 シュワシュワ ===== */
+.p2{width:172px}
+.p2 .orb{position:absolute;left:8px;top:8px;width:156px;height:156px;border-radius:50%;border:3px solid var(--ink);overflow:hidden;
+  background:linear-gradient(180deg,var(--amber2),var(--amber) 75%)}
+.p2 .shine{position:absolute;left:16px;top:44px;width:40px;height:84px;border-radius:50%;border-left:5px solid rgba(251,250,246,.5)}
+.p2 .fhead{position:absolute;left:-6px;right:-6px;top:-8px;height:44px}
+.p2 .fhead svg{width:100%;height:100%;overflow:visible}
+.p2 .fhead path{fill:var(--foam);stroke:var(--ink);stroke-width:2.6;stroke-linejoin:round}
+.ov.run .p2 .fhead{animation:p2head 2.6s var(--io) infinite alternate}
+@keyframes p2head{from{transform:translateY(0)}to{transform:translateY(4px)}}
+.p2 .b{position:absolute;bottom:-16px;left:var(--x);width:var(--s);height:var(--s);opacity:0}
+.p2 .b::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--foam);background:rgba(251,250,246,.22)}
+.ov.run .p2 .b{animation:p2up var(--d) cubic-bezier(.45,0,.8,.55) var(--w) infinite}
+.ov.run .p2 .b::before{animation:p2sway .9s var(--io) var(--w) infinite alternate}
+@keyframes p2up{0%{transform:translateY(0) scale(.7);opacity:0}12%{opacity:1}80%{opacity:1}100%{transform:translateY(-128px) scale(1.12);opacity:0}}
+@keyframes p2sway{from{transform:translateX(-3px)}to{transform:translateX(3px)}}
+.p2 .pop{position:absolute;width:7px;height:7px;border-radius:50%;border:2px solid var(--ink);background:var(--foam);opacity:0}
+.ov.run .p2 .pop{animation:p2pop 2.2s var(--out) var(--w) infinite}
+@keyframes p2pop{0%,60%{opacity:0;transform:translateY(6px) scale(.4)}70%{opacity:1;transform:translateY(-6px) scale(1)}86%,100%{opacity:0;transform:translateY(-16px) scale(1.25)}}
+
+/* ===== 案3 ビアタップ ===== */
+.p3 .tower{position:absolute;left:18px;top:30px;width:26px;height:132px;border:3px solid var(--ink);border-radius:10px 10px 3px 3px;background:var(--bg);z-index:2}
+.p3 .tower::after{content:"";position:absolute;left:4px;right:4px;top:30px;height:22px;border-radius:3px;background:var(--amber)}
+.p3 .arm{position:absolute;left:41px;top:42px;width:66px;height:18px;border:3px solid var(--ink);border-left:0;border-radius:0 9px 9px 0;background:var(--bg);z-index:2}
+.p3 .noz{position:absolute;left:89px;top:57px;width:13px;height:16px;border:3px solid var(--ink);border-top:0;border-radius:0 0 4px 4px;background:var(--bg);z-index:2}
+.p3 .collar{position:absolute;left:84px;top:36px;width:23px;height:8px;border-radius:3px;background:var(--ink);z-index:3}
+.p3 .lever{position:absolute;left:88px;top:-8px;width:15px;height:48px;border:3px solid var(--ink);border-radius:8px 8px 4px 4px;background:var(--amber);
+  transform-origin:50% 100%;z-index:3}
+.p3 .lever::after{content:"";position:absolute;left:3px;top:6px;width:3px;height:22px;border-radius:2px;background:rgba(251,250,246,.6)}
+.p3 .stream{position:absolute;left:92.5px;top:72px;width:6px;height:34px;border-radius:3px;background:var(--amber);z-index:1;clip-path:inset(0 0 100% 0)}
+.p3 .glass{left:70px;bottom:7px;width:52px;height:68px;border-radius:3px 3px 10px 10px}
+.p3 .liq{transform:translateY(102%)}
+.p3 .liq::before{height:11px}
+.p3 .glint{left:6px;top:12px}
+.p3 .floor{left:6px;right:14px;bottom:3px}
+.ov.run .p3 .lever{animation:p3lev 3.2s infinite}
+.ov.run .p3 .stream{animation:p3str 3.2s infinite}
+.ov.run .p3 .liq{animation:p3liq 3.2s infinite}
+@keyframes p3lev{
+  0%{transform:rotate(0);animation-timing-function:var(--io)}
+  6%{transform:rotate(-6deg);animation-timing-function:cubic-bezier(.3,1.45,.55,1)}
+  17%{transform:rotate(34deg)}
+  64%{transform:rotate(34deg);animation-timing-function:cubic-bezier(.3,1.4,.55,1)}
+  76%,100%{transform:rotate(0)}}
+@keyframes p3str{
+  0%,15%{clip-path:inset(0 0 100% 0);animation-timing-function:cubic-bezier(.5,0,.3,1)}
+  21%,63%{clip-path:inset(0);animation-timing-function:cubic-bezier(.6,0,.4,1)}
+  70%,100%{clip-path:inset(100% 0 0 0)}}
+@keyframes p3liq{
+  0%,19%{transform:translateY(102%);opacity:1;animation-timing-function:cubic-bezier(.35,.55,.25,1)}
+  68%{transform:translateY(0)}
+  88%{transform:translateY(0);opacity:1;animation-timing-function:ease-in}
+  96%,100%{transform:translateY(0);opacity:0}}
+
+/* ===== 案4 泡があふれる ===== */
+.p4 .glass{left:44px;bottom:12px;width:76px;height:94px;border-radius:5px 5px 14px 14px}
+.p4 .liq::before{height:12px}
+.p4 .hdl{left:117px;bottom:32px;width:26px;height:48px}
+.p4 .dome{left:38px;bottom:98px;width:88px;height:36px;transform-origin:50% 100%}
+.p4 .drip{position:absolute;left:37px;top:64px;width:14px;height:54px;overflow:visible;z-index:4;clip-path:inset(0 0 100% 0)}
+.p4 .drip path{fill:var(--foam);stroke:var(--ink);stroke-width:2.6;stroke-linejoin:round}
+.p4 .drop{position:absolute;left:39px;top:110px;width:10px;height:10px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;border:2.5px solid var(--ink);background:var(--foam);opacity:0;z-index:4}
+.p4 .splat{position:absolute;left:31px;bottom:9px;width:26px;height:8px;border-radius:50%;border:2.5px solid var(--ink);background:var(--foam);opacity:0;z-index:4}
+.p4 .floor{left:14px;right:14px;bottom:9px}
+.ov.run .p4 .dome{animation:p4dome 2.8s infinite}
+.ov.run .p4 .drip{animation:p4drip 2.8s infinite}
+.ov.run .p4 .drop{animation:p4drop 2.8s infinite}
+.ov.run .p4 .splat{animation:p4splat 2.8s infinite}
+@keyframes p4dome{
+  0%{transform:scale(.9,.5);animation-timing-function:cubic-bezier(.25,.9,.35,1)}
+  28%{transform:scale(1.07,1.14);animation-timing-function:var(--io)}
+  38%{transform:scale(1,1)}
+  78%{transform:scale(1,1);animation-timing-function:var(--io)}
+  100%{transform:scale(.9,.5)}}
+@keyframes p4drip{
+  0%,20%{clip-path:inset(0 0 100% 0);opacity:1;animation-timing-function:cubic-bezier(.3,.6,.3,1)}
+  50%{clip-path:inset(0 0 0 0)}
+  80%{clip-path:inset(0 0 0 0);opacity:1;animation-timing-function:ease-in}
+  92%,100%{clip-path:inset(0 0 0 0);opacity:0}}
+@keyframes p4drop{
+  0%,50%{opacity:0;transform:translateY(0) scale(.4)}
+  56%{opacity:1;transform:translateY(0) scale(1);animation-timing-function:cubic-bezier(.55,0,1,.45)}
+  70%{opacity:1;transform:translateY(40px) scale(.95,1.1)}
+  71%,100%{opacity:0;transform:translateY(40px)}}
+@keyframes p4splat{
+  0%,70%{opacity:0;transform:scale(.3,.5)}
+  72%{opacity:1;transform:scale(.6,.8);animation-timing-function:var(--out)}
+  88%{opacity:0;transform:scale(1.5,1)}
+  100%{opacity:0}}
+
+/* ===== 案5 乾杯 ===== */
+.p5 .w{position:absolute;bottom:25px;width:56px;height:86px;transform-origin:50% 100%}
+.p5 .wl{left:14px}.p5 .wr{right:14px}
+.p5 .glass{left:0;bottom:0;width:56px;height:72px;border-radius:4px 4px 12px 12px}
+.p5 .liq::before{height:13px}
+.p5 .glint{left:7px;top:20px}
+.p5 .wl .hdl{left:-20px;bottom:14px;width:23px;height:38px;border:3px solid var(--ink);border-right:0;border-radius:16px 0 0 16px}
+.p5 .wr .hdl{left:53px;bottom:14px;width:23px;height:38px}
+.p5 .crown{left:-4px;top:2px;width:64px;height:18px}
+.p5 .floor{left:8px;right:8px;bottom:22px}
+.p5 .burst{position:absolute;left:90px;top:68px;width:0;height:0;z-index:5}
+.p5 .sp{position:absolute;left:-1.5px;bottom:0;width:3px;height:11px;border-radius:2px;background:var(--ink);transform-origin:50% 100%;opacity:0}
+.p5 .dr{position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;border:2px solid var(--ink);background:var(--foam);opacity:0}
+.ov.run .p5 .wl{animation:p5l 2.4s infinite}
+.ov.run .p5 .wr{animation:p5r 2.4s infinite}
+.ov.run .p5 .sp{animation:p5sp 2.4s infinite}
+.ov.run .p5 .dr{animation:p5dr 2.4s infinite}
+@keyframes p5l{
+  0%{transform:translate(-10px,0) rotate(-6deg);animation-timing-function:cubic-bezier(.55,0,.8,.45)}
+  30%{transform:translate(5px,-10px) rotate(13deg);animation-timing-function:cubic-bezier(.2,.8,.3,1)}
+  38%{transform:translate(-1px,-9px) rotate(9deg);animation-timing-function:var(--io)}
+  50%{transform:translate(2px,-10px) rotate(11deg);animation-timing-function:var(--io)}
+  78%,100%{transform:translate(-10px,0) rotate(-6deg)}}
+@keyframes p5r{
+  0%{transform:translate(10px,0) rotate(6deg);animation-timing-function:cubic-bezier(.55,0,.8,.45)}
+  30%{transform:translate(-5px,-10px) rotate(-13deg);animation-timing-function:cubic-bezier(.2,.8,.3,1)}
+  38%{transform:translate(1px,-9px) rotate(-9deg);animation-timing-function:var(--io)}
+  50%{transform:translate(-2px,-10px) rotate(-11deg);animation-timing-function:var(--io)}
+  78%,100%{transform:translate(10px,0) rotate(6deg)}}
+@keyframes p5sp{
+  0%,29%{opacity:0;transform:rotate(var(--a)) translateY(-6px) scaleY(.3)}
+  31%{opacity:1;transform:rotate(var(--a)) translateY(-8px) scaleY(1);animation-timing-function:var(--out)}
+  46%,100%{opacity:0;transform:rotate(var(--a)) translateY(-24px) scaleY(.4)}}
+@keyframes p5dr{
+  0%,29%{opacity:0;transform:translate(0,0) scale(.4)}
+  31%{opacity:1;animation-timing-function:cubic-bezier(.2,.7,.4,1)}
+  42%{opacity:1;transform:translate(calc(var(--dx)*.6),var(--dy)) scale(1);animation-timing-function:cubic-bezier(.5,0,.9,.5)}
+  56%,100%{opacity:0;transform:translate(var(--dx),calc(var(--dy) + 22px)) scale(.8)}}
+
+/* ---------- selection bar ---------- */
+.selbar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:30;max-width:520px;margin:0 auto;
+  background:var(--ink);color:var(--bg);border-radius:20px;padding:12px 18px;display:flex;align-items:center;gap:12px;
+  box-shadow:0 14px 34px rgba(18,18,18,.28)}
+.selbar .dot{width:12px;height:12px;border-radius:50%;background:var(--sub);flex:none;transition:background .3s}
+.selbar.has .dot{background:var(--amber)}
+.selbar .k{font-size:13px;font-weight:700;color:rgba(241,239,234,.65);white-space:nowrap}
+.selbar .v{font-size:15px;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.selbar .v.flash{animation:flash .5s var(--out)}
+@keyframes flash{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+.selbar .d{font-size:13px;font-weight:700;color:var(--amber);font-variant-numeric:tabular-nums;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<header class="head">
+  <p class="eyebrow"><i></i>LOADING ANIMATION</p>
+  <h1>DRINK MAP ローディング5案</h1>
+  <p class="lead">読み込み中に全画面で出る演出の候補です。モチーフはすべてビール。「再生」を押すと、表示時間ぶん出たあとフェードアウトして地図画面が開きます。</p>
+</header>
+
+<div class="ctrl" role="group" aria-label="表示時間">
+  <div class="in">
+    <span class="lab">表示時間</span>
+    <div class="seg" role="radiogroup" id="seg">
+      <button type="button" role="radio" aria-checked="false" data-ms="1200">1.2秒</button>
+      <button type="button" role="radio" aria-checked="true" data-ms="1700">1.7秒</button>
+      <button type="button" role="radio" aria-checked="false" data-ms="2400">2.4秒</button>
+    </div>
+  </div>
+</div>
+
+<main class="grid" id="grid"></main>
+
+<div class="selbar" id="selbar" aria-live="polite">
+  <span class="dot"></span>
+  <span class="k">選択中</span>
+  <span class="v" id="selv">まだ選んでいません</span>
+  <span class="d" id="seld">1.7秒</span>
+</div>
+
+<!-- shared parts -->
+<template id="tpl-app">
+  <div class="app">
+    <div class="apphd"><span class="logo"><i></i>DRINK MAP</span><span class="area">秋葉原</span></div>
+    <div class="search"><svg viewBox="0 0 16 16" fill="none" stroke="#121212" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5" stroke-linecap="round"/></svg>近くの一杯を探す</div>
+    <div class="map">
+      <svg viewBox="0 0 358 330" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <path d="M-10 250 C80 230 120 270 200 250 S330 210 370 230" fill="none" stroke="rgba(93,90,84,.16)" stroke-width="16" stroke-linecap="round"/>
+        <g stroke="rgba(93,90,84,.22)" stroke-width="9" stroke-linecap="round" fill="none">
+          <path d="M-10 70 L370 110"/><path d="M-10 170 L370 160"/><path d="M110 -10 L90 340"/><path d="M250 -10 L270 340"/>
+        </g>
+        <g stroke="rgba(93,90,84,.16)" stroke-width="4" fill="none">
+          <path d="M-10 120 L370 135"/><path d="M180 -10 L178 340"/><path d="M40 -10 L30 340"/><path d="M320 -10 L330 340"/><path d="M-10 210 L370 205"/>
+        </g>
+        <path d="M60 -10 L300 340" stroke="#121212" stroke-width="2" stroke-dasharray="10 6" opacity=".35" fill="none"/>
+        <g transform="translate(150 96)"><g class="pin" style="--i:0"><path d="M0 0c-9 0-14 6-14 13 0 9 14 21 14 21s14-12 14-21c0-7-5-13-14-13z" transform="translate(0 -34)" fill="#F4B223" stroke="#121212" stroke-width="2.5"/><circle cx="0" cy="-21" r="4" fill="#121212"/></g></g>
+        <g transform="translate(232 150)"><g class="pin" style="--i:1"><path d="M0 0c-9 0-14 6-14 13 0 9 14 21 14 21s14-12 14-21c0-7-5-13-14-13z" transform="translate(0 -34)" fill="#F5B454" stroke="#121212" stroke-width="2.5"/><circle cx="0" cy="-21" r="4" fill="#121212"/></g></g>
+        <g transform="translate(76 168)"><g class="pin" style="--i:2"><path d="M0 0c-9 0-14 6-14 13 0 9 14 21 14 21s14-12 14-21c0-7-5-13-14-13z" transform="translate(0 -34)" fill="#F4B223" stroke="#121212" stroke-width="2.5"/><circle cx="0" cy="-21" r="4" fill="#121212"/></g></g>
+        <g transform="translate(300 76)"><g class="pin" style="--i:3"><path d="M0 0c-9 0-14 6-14 13 0 9 14 21 14 21s14-12 14-21c0-7-5-13-14-13z" transform="translate(0 -34)" fill="#F5B454" stroke="#121212" stroke-width="2.5"/><circle cx="0" cy="-21" r="4" fill="#121212"/></g></g>
+        <g transform="translate(196 210)"><circle r="16" fill="rgba(244,178,35,.25)"/><circle r="6" fill="#121212" stroke="#F1EFEA" stroke-width="3"/></g>
+      </svg>
+      <div class="sheet">
+        <div class="grab"></div>
+        <h3>近くのスポット<span>12件</span></h3>
+        <div class="row"><span class="ic"><svg viewBox="0 0 20 20" fill="none" stroke="#121212" stroke-width="2" stroke-linejoin="round"><path d="M4 6h9v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M13 8h2a2 2 0 0 1 0 6h-2"/><path d="M4 6c0-2 2-3 4.5-3S13 4 13 6"/></svg></span><span class="t"><b>Akiba Taproom</b><span>クラフトビール・立ち飲み</span></span><span class="km">120m</span></div>
+        <div class="row"><span class="ic"><svg viewBox="0 0 20 20" fill="none" stroke="#121212" stroke-width="2" stroke-linejoin="round"><path d="M4 6h9v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M13 8h2a2 2 0 0 1 0 6h-2"/><path d="M4 6c0-2 2-3 4.5-3S13 4 13 6"/></svg></span><span class="t"><b>末広町ビアスタンド</b><span>樽生 8種</span></span><span class="km">340m</span></div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+const CROWN = '<path d="M3 25 C1 16 8 10 16 13 C18 4 31 1 37 8 C42 0 56 1 58 9 C64 3 77 6 76 15 C84 13 88 20 85 25 Z"/>';
+const STAGES = {
+  1:`<div class="stage p1">
+      <div class="stream"></div>
+      <div class="hdl"></div>
+      <div class="glass"><div class="liq"><i class="bub" style="left:18px"></i><i class="bub" style="left:40px;animation-delay:-.5s"></i><i class="bub" style="left:56px;animation-delay:-1s;width:4px;height:4px"></i></div><div class="glint"></div></div>
+      <svg class="foamsvg crown" viewBox="0 0 88 26">${CROWN}</svg>
+    </div>`,
+  2:`<div class="stage p2">
+      <div class="orb">
+        <div class="shine"></div>
+        ${[[22,10,2.4,0],[44,6,1.9,-.6],[62,12,2.7,-1.4],[80,7,2.1,-.3],[96,9,2.5,-1.9],[112,5,1.8,-1.1],[126,11,2.6,-.8],[54,5,1.7,-1.6],[88,6,2.2,-2.0],[34,7,2.0,-1.2],[104,8,2.3,-.1]]
+          .map(([x,s,d,w])=>`<span class="b" style="--x:${x}px;--s:${s}px;--d:${d}s;--w:${w}s"></span>`).join('')}
+        <div class="fhead"><svg viewBox="0 0 168 44" preserveAspectRatio="none"><path d="M-4 -4 H172 V26 C160 34 150 26 140 32 C128 40 116 28 104 34 C92 40 80 28 68 34 C56 40 44 28 32 33 C20 38 10 28 -4 32 Z"/></svg></div>
+      </div>
+      <span class="pop" style="left:58px;top:2px;--w:0s"></span>
+      <span class="pop" style="left:104px;top:-2px;--w:-1.1s"></span>
+      <span class="pop" style="left:82px;top:-10px;--w:-.5s;width:5px;height:5px"></span>
+    </div>`,
+  3:`<div class="stage p3">
+      <div class="lever"></div><div class="collar"></div>
+      <div class="tower"></div><div class="arm"></div><div class="noz"></div>
+      <div class="stream"></div>
+      <div class="glass"><div class="liq"><i class="bub" style="left:12px"></i><i class="bub" style="left:30px;animation-delay:-.7s;width:4px;height:4px"></i></div><div class="glint"></div></div>
+      <div class="floor"></div>
+    </div>`,
+  4:`<div class="stage p4">
+      <div class="hdl"></div>
+      <div class="glass"><div class="liq"><i class="bub" style="left:16px"></i><i class="bub" style="left:38px;animation-delay:-.6s;width:4px;height:4px"></i><i class="bub" style="left:54px;animation-delay:-1.1s"></i></div><div class="glint"></div></div>
+      <svg class="drip" viewBox="0 0 14 54"><path d="M2 -2 V40 a5 5 0 0 0 10 0 V-2"/></svg>
+      <svg class="foamsvg dome" viewBox="0 0 88 36"><path d="M2 35 C-1 24 6 16 14 18 C14 7 27 1 35 9 C40 -1 56 -1 60 8 C67 2 81 7 79 18 C87 18 90 28 86 35 Z"/></svg>
+      <div class="drop"></div><div class="splat"></div>
+      <div class="floor"></div>
+    </div>`,
+  5:`<div class="stage p5">
+      <div class="floor"></div>
+      <div class="w wl"><div class="hdl"></div><div class="glass"><div class="liq"><i class="bub" style="left:14px"></i><i class="bub" style="left:32px;animation-delay:-.8s;width:4px;height:4px"></i></div><div class="glint"></div></div><svg class="foamsvg crown" viewBox="0 0 88 26" preserveAspectRatio="none">${CROWN}</svg></div>
+      <div class="w wr"><div class="hdl"></div><div class="glass"><div class="liq"><i class="bub" style="left:20px;animation-delay:-.4s"></i><i class="bub" style="left:36px;animation-delay:-1.1s;width:4px;height:4px"></i></div><div class="glint"></div></div><svg class="foamsvg crown" viewBox="0 0 88 26" preserveAspectRatio="none">${CROWN}</svg></div>
+      <div class="burst">
+        ${[-72,-38,0,38,72].map(a=>`<span class="sp" style="--a:${a}deg"></span>`).join('')}
+        ${[[-26,-26],[24,-30],[4,-40]].map(([dx,dy])=>`<span class="dr" style="--dx:${dx}px;--dy:${dy}px"></span>`).join('')}
+      </div>
+    </div>`
+};
+const PLANS = [
+  {n:1,name:'注ぐ',desc:'ジョッキに黄金色が満ちていき、最後に泡がふわっと縁を越える。いちばん王道。',cap:'一杯目を注いでいます'},
+  {n:2,name:'シュワシュワ',desc:'丸い窓の中を泡が揺れながら昇り、表面ではじける。静かで品のある待ち時間。',cap:'秋葉原の一杯を探しています'},
+  {n:3,name:'ビアタップ',desc:'タップのハンドルをぐっと倒すと、グラスに一杯分が注がれる。お店らしさが強い。',cap:'樽から一杯、準備中'},
+  {n:4,name:'泡があふれる',desc:'盛り上がった泡が縁からこぼれ、ひとしずく落ちる。ゆるさと可笑しみ。',cap:'あふれる前に、もう少し'},
+  {n:5,name:'乾杯',desc:'左右のジョッキが近づいてカチン。泡が跳ねて離れる。開く瞬間の高揚感。',cap:'乾杯の準備をしています'}
+];
+
+const grid = document.getElementById('grid');
+const appHTML = document.getElementById('tpl-app').innerHTML;
+const sbar = `<div class="island"></div><div class="sbar"><span>9:41</span><svg viewBox="0 0 64 12"><g fill="#121212"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="6" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/><rect x="38" y="1" width="22" height="10" rx="3" fill="none" stroke="#121212" stroke-width="1.5"/><rect x="40.5" y="3.5" width="15" height="5" rx="1.5"/><rect x="61" y="4" width="2" height="4" rx="1"/></g><path d="M23 4.5a10 10 0 0 1 12 0M25.5 7.5a6 6 0 0 1 7 0" stroke="#121212" stroke-width="1.8" fill="none" stroke-linecap="round"/><circle cx="29" cy="10.3" r="1.4" fill="#121212"/></svg></div>`;
+
+grid.innerHTML = PLANS.map(p=>`
+  <section class="card" data-n="${p.n}">
+    <div class="no"><b>案${p.n}</b>BEER</div>
+    <h2>${p.name}</h2>
+    <p class="desc">${p.desc}</p>
+    <div class="mock"><div class="scr">${sbar}${appHTML}
+      <div class="ov run" aria-label="ローディング画面">${STAGES[p.n]}
+        <div class="brand"><b>DRINK MAP</b><span>${p.cap}</span></div>
+      </div>
+    </div></div>
+    <div class="acts">
+      <button type="button" class="btn play"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>再生</button>
+      <button type="button" class="btn pick">これにする</button>
+    </div>
+  </section>`).join('');
+
+let dur = 1700, picked = null;
+const selbar = document.getElementById('selbar'), selv = document.getElementById('selv'), seld = document.getElementById('seld');
+const fmt = ms => (ms/1000).toFixed(1)+'秒';
+
+document.getElementById('seg').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  dur = +b.dataset.ms;
+  document.querySelectorAll('#seg button').forEach(x=>x.setAttribute('aria-checked', x===b));
+  seld.textContent = fmt(dur);
+});
+
+function restart(ov){ ov.classList.remove('run'); void ov.offsetWidth; ov.classList.add('run'); }
+function play(card){
+  const ov = card.querySelector('.ov'), app = card.querySelector('.app');
+  clearTimeout(card._t1); clearTimeout(card._t2);
+  ov.classList.remove('out'); app.classList.remove('open');
+  restart(ov);
+  card._t1 = setTimeout(()=>{ ov.classList.add('out'); app.classList.add('open'); }, dur);
+  card._t2 = setTimeout(()=>{ ov.classList.remove('out'); restart(ov); setTimeout(()=>app.classList.remove('open'),400); }, dur + 3200);
+}
+function pick(card){
+  const n = +card.dataset.n; picked = n;
+  document.querySelectorAll('.card').forEach(c=>{
+    const on = c===card; c.classList.toggle('sel', on);
+    c.querySelector('.pick').textContent = on ? '✓ 選択中' : 'これにする';
+  });
+  const p = PLANS[n-1];
+  selv.textContent = `案${n}「${p.name}」`;
+  selv.classList.remove('flash'); void selv.offsetWidth; selv.classList.add('flash');
+  selbar.classList.add('has');
+}
+grid.addEventListener('click', e=>{
+  const card = e.target.closest('.card'); if(!card) return;
+  if(e.target.closest('.play')) play(card);
+  else if(e.target.closest('.pick')) pick(card);
+});
+
+// 画面外のモックはアニメを止めて軽くする
+const io = new IntersectionObserver(es=>es.forEach(en=>en.target.classList.toggle('vis', en.isIntersecting)),{rootMargin:'80px'});
+document.querySelectorAll('.mock').forEach(m=>io.observe(m));
+</script>
+</body>
+</html>

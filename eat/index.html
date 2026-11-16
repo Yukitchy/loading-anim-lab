@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>EAT MAP ローディング｜クローシュ5案</title>
+<style>
+:root{
+  --bg:#F1EFEA; --ink:#121212; --g:#1B8A3F; --sub:#5D5A54;
+  --line:#DCD8D0; --chip:#E4E1DA;
+  --out:cubic-bezier(.22,1,.36,1); --spring:cubic-bezier(.34,1.56,.64,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic","YuGothic",Meiryo,"Segoe UI",sans-serif;
+  line-height:1.7;-webkit-font-smoothing:antialiased;
+  overflow-x:clip;padding-bottom:110px;
+}
+p,span,b,button,h1,h2,div{word-break:auto-phrase;line-break:strict}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--g);outline-offset:3px;border-radius:6px}
+
+/* ---------- header ---------- */
+.top{max-width:1320px;margin:0 auto;padding:30px 16px 18px}
+.eyebrow{font-size:13px;font-weight:800;letter-spacing:.16em;color:var(--g)}
+h1{font-size:clamp(17px,4.5vw,28px);line-height:1.35;font-weight:800;letter-spacing:.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:6px}
+.lead{font-size:14px;color:var(--sub);max-width:62ch;margin-top:8px;text-wrap:pretty}
+
+/* ---------- toolbar ---------- */
+.toolbar{position:sticky;top:0;z-index:20;background:rgba(241,239,234,.88);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.toolbar .in{max-width:1320px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.toolbar .lab{font-size:13px;font-weight:700;color:var(--sub);white-space:nowrap}
+.seg{display:inline-flex;background:var(--chip);border-radius:999px;padding:3px;gap:2px}
+.seg button{height:36px;padding:0 14px;border-radius:999px;font-size:14px;font-weight:700;color:var(--sub);
+  font-variant-numeric:tabular-nums;transition:background .2s var(--out),color .2s}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.allplay{margin-left:auto;height:38px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:700;
+  box-shadow:inset 0 0 0 1.5px var(--ink);white-space:nowrap;transition:transform .12s var(--spring)}
+.allplay:active{transform:scale(.97)}
+@media(max-width:420px){.toolbar .lab{display:none}.seg button{padding:0 12px}}
+
+/* ---------- grid ---------- */
+main{max-width:1320px;margin:0 auto;padding:28px 16px 40px;display:grid;gap:56px 28px;
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,404px),1fr));justify-items:center}
+.card{width:100%;max-width:404px;display:flex;flex-direction:column;gap:14px}
+.c-no{font-size:13px;font-weight:800;letter-spacing:.14em;color:var(--g)}
+.c-no span{color:var(--sub);letter-spacing:.06em;font-weight:700;margin-left:8px}
+.card h2{font-size:21px;line-height:1.4;margin-top:2px}
+.card .desc{font-size:14px;color:var(--sub);margin-top:4px;text-wrap:pretty}
+.spec{display:flex;flex-wrap:wrap;gap:6px 6px;margin-top:10px}
+.spec span{font-size:13px;padding:3px 10px;border-radius:999px;background:var(--chip);color:#3B3935;white-space:nowrap}
+
+.acts{display:flex;gap:10px}
+.btn{flex:1;height:48px;border-radius:999px;font-size:15px;font-weight:700;
+  transition:transform .12s var(--spring),background .25s var(--out),color .25s,box-shadow .25s}
+.btn:active{transform:scale(.97)}
+.btn.play{background:var(--ink);color:var(--bg)}
+.btn.pick{box-shadow:inset 0 0 0 1.5px var(--ink)}
+.card.sel .btn.pick{background:var(--g);color:#fff;box-shadow:none}
+.back{align-self:center;font-size:13px;font-weight:700;color:var(--sub);height:28px;padding:0 8px;
+  opacity:0;pointer-events:none;transition:opacity .3s}
+.card.shown .back{opacity:1;pointer-events:auto}
+
+/* ---------- phone ---------- */
+.phone{width:100%;background:#121212;border-radius:52px;padding:7px;
+  box-shadow:0 2px 4px rgba(18,18,18,.08),0 28px 50px -16px rgba(18,18,18,.32);
+  outline:3px solid transparent;outline-offset:6px;transition:outline-color .35s var(--out)}
+.card.sel .phone{outline-color:var(--g)}
+.screen{position:relative;aspect-ratio:390/800;border-radius:45px;overflow:hidden;background:var(--bg);isolation:isolate}
+.island{position:absolute;top:11px;left:50%;width:110px;height:32px;margin-left:-55px;background:#121212;border-radius:999px;z-index:7}
+.sb{position:absolute;top:0;left:0;right:0;height:54px;display:flex;justify-content:space-between;align-items:center;
+  padding:6px 30px 0 38px;font-size:15px;font-weight:700;z-index:6;font-variant-numeric:tabular-nums;pointer-events:none}
+.sb svg{display:block}
+.sb .ic{display:flex;gap:6px;align-items:center}
+
+/* app (content under the overlay) */
+.app{position:absolute;inset:0;padding:60px 18px 0;display:flex;flex-direction:column;gap:14px}
+.a-head{display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:17px;font-weight:800;letter-spacing:.16em;display:flex;align-items:center;gap:8px}
+.logo i{width:9px;height:9px;border-radius:50%;background:var(--g)}
+.me{width:34px;height:34px;border-radius:50%;background:var(--chip);display:grid;place-items:center}
+.search{height:46px;border-radius:999px;background:#FBFAF7;display:flex;align-items:center;gap:10px;padding:0 18px;
+  font-size:14px;color:var(--sub);white-space:nowrap;overflow:hidden}
+.chips{display:flex;gap:8px;overflow:hidden}
+.chip{padding:6px 14px;border-radius:999px;background:var(--chip);font-size:13px;font-weight:700;white-space:nowrap}
+.chip.on{background:var(--ink);color:var(--bg)}
+.map{flex:1 1 auto;min-height:120px;border-radius:22px;overflow:hidden;background:#E5E1D8;position:relative}
+.map svg{position:absolute;inset:0;width:100%;height:100%}
+.sheet{padding-bottom:22px}
+.sh-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.sh-h b{font-size:16px}
+.sh-h span{font-size:13px;color:var(--sub)}
+.row{display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.sh-h + .row{border-top:0}
+.thumb{width:46px;height:46px;border-radius:12px;background:var(--chip);display:grid;place-items:center;flex:none}
+.rt{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.45}
+.rt b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rt span{font-size:13px;color:var(--sub);white-space:nowrap}
+.rate{font-size:14px;font-weight:800;color:var(--g);font-variant-numeric:tabular-nums}
+
+/* overlay */
+.ov{position:absolute;inset:0;z-index:5;background:var(--bg);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:20px;padding-bottom:36px}
+.stage{width:236px;will-change:transform}
+.stage svg{display:block;width:100%;height:auto;overflow:visible}
+.brand{text-align:center;will-change:opacity}
+.wm{font-size:15px;font-weight:800;letter-spacing:.34em;padding-left:.34em;display:flex;align-items:center;justify-content:center;gap:2px}
+.tag{font-size:13px;color:var(--sub);letter-spacing:.08em;margin-top:2px}
+.bar{width:96px;height:2px;border-radius:2px;background:#DCD8D0;margin:14px auto 0;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--g);transform-origin:0 50%;transform:scaleX(0)}
+
+/* svg animation helpers */
+.tb{transform-box:view-box}
+.fb{transform-box:fill-box;transform-origin:50% 50%}
+.wisp{fill:none;stroke:#B9B5AD;stroke-width:4;stroke-linecap:round;transform-box:fill-box;transform-origin:50% 100%;
+  opacity:0;animation:wisp 3.4s cubic-bezier(.33,0,.2,1) infinite}
+.wisp:nth-child(2){animation-delay:-1.13s}
+.wisp:nth-child(3){animation-delay:-2.26s}
+.s1{filter:blur(.5px)}
+@keyframes wisp{
+  0%{opacity:0;transform:translate(0,12px) scale(.9,.7)}
+  28%{opacity:.9}
+  70%{opacity:.4}
+  100%{opacity:0;transform:translate(3px,-24px) scale(1.08,1.15)}
+}
+.bub{fill:none;stroke:#ABA79F;stroke-width:1.8;transform-box:fill-box;transform-origin:50% 50%;
+  opacity:0;animation:bub 2.6s cubic-bezier(.3,0,.3,1) infinite}
+.bub:nth-child(2){animation-delay:-.65s}.bub:nth-child(3){animation-delay:-1.3s}.bub:nth-child(4){animation-delay:-1.95s}
+@keyframes bub{0%{opacity:0;transform:translateY(8px) scale(.5)}30%{opacity:.95}100%{opacity:0;transform:translateY(-36px) scale(1.15)}}
+.curl{fill:none;stroke:#ABA79F;stroke-width:3;stroke-linecap:round;stroke-dasharray:.55 1.6;
+  animation:flow 3s cubic-bezier(.4,0,.3,1) infinite}
+.curl:nth-child(2){animation-delay:-.2s}
+.curl:nth-child(3),.curl:nth-child(4){animation-delay:-1.5s;stroke-width:2.4}
+@keyframes flow{0%{stroke-dashoffset:.6;opacity:0}20%{opacity:.95}80%{opacity:.5}100%{stroke-dashoffset:-1.05;opacity:0}}
+.tw{transform-box:fill-box;transform-origin:50% 50%;opacity:0;animation:tw 2.2s cubic-bezier(.4,0,.2,1) infinite}
+.tw:nth-child(2){animation-delay:-.55s}.tw:nth-child(3){animation-delay:-1.1s}.tw:nth-child(4){animation-delay:-1.65s}
+@keyframes tw{0%{opacity:0;transform:scale(.2) rotate(0)}35%{opacity:1;transform:scale(1) rotate(20deg)}70%,100%{opacity:0;transform:scale(.3) rotate(45deg)}}
+.sway{animation:sway 3.6s cubic-bezier(.45,0,.55,1) infinite alternate}
+@keyframes sway{from{transform:translateX(-1.5px)}to{transform:translateX(1.5px)}}
+
+/* ---------- selection bar ---------- */
+.pickbar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--ink);color:var(--bg);
+  padding:14px 16px calc(14px + env(safe-area-inset-bottom))}
+.pickbar .in{max-width:1320px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.pickbar .lab{font-size:13px;font-weight:800;letter-spacing:.12em;color:#A9A59D;white-space:nowrap}
+.pickbar .dot{width:10px;height:10px;border-radius:50%;background:#4A4843;flex:none;transition:background .3s}
+.pickbar.has .dot{background:var(--g);box-shadow:0 0 0 4px rgba(27,138,63,.25)}
+.pickbar .val{font-size:15px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pickbar .val.bump{animation:bump .5s var(--out)}
+@keyframes bump{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+@media(prefers-reduced-motion:reduce){
+  .wisp,.bub,.curl,.tw,.sway,.pickbar .val.bump{animation:none!important}
+  .wisp,.bub,.tw{opacity:.6}
+}
+</style>
+</head>
+<body>
+
+<!-- shared SVG defs -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="silver" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#8C8A85"/>
+      <stop offset=".15" stop-color="#B6B4AE"/>
+      <stop offset=".36" stop-color="#E9E8E4"/>
+      <stop offset=".48" stop-color="#F8F7F4"/>
+      <stop offset=".64" stop-color="#D2D0CA"/>
+      <stop offset=".85" stop-color="#A4A29C"/>
+      <stop offset="1" stop-color="#82807B"/>
+    </linearGradient>
+    <linearGradient id="shade" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".35"/>
+      <stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#121212" stop-opacity=".2"/>
+    </linearGradient>
+    <linearGradient id="rimg" x1="0" x2="1">
+      <stop offset="0" stop-color="#7E7C77"/>
+      <stop offset=".4" stop-color="#D9D7D2"/>
+      <stop offset=".55" stop-color="#EEEDEA"/>
+      <stop offset="1" stop-color="#7A7873"/>
+    </linearGradient>
+    <radialGradient id="warm" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset=".45" stop-color="#FBF5E3" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#F1EFEA" stop-opacity="0"/>
+    </radialGradient>
+    <g id="cloche">
+      <path d="M30 166 C30 104 70 62 120 62 C170 62 210 104 210 166 Z" fill="url(#silver)"/>
+      <path d="M30 166 C30 104 70 62 120 62 C170 62 210 104 210 166 Z" fill="url(#shade)"/>
+      <path d="M30 166 C30 104 70 62 120 62 C170 62 210 104 210 166 Z" fill="none" stroke="#121212" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M58 142 C60 114 78 90 104 79" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".85"/>
+      <circle cx="62" cy="155" r="2.6" fill="#fff" opacity=".75"/>
+      <path d="M176 120 C182 132 184 144 184 156" fill="none" stroke="#121212" stroke-width="1.4" stroke-linecap="round" opacity=".18"/>
+      <rect x="22" y="161" width="196" height="10" rx="5" fill="url(#rimg)" stroke="#121212" stroke-width="1.8"/>
+      <rect x="115" y="51" width="10" height="13" rx="2" fill="#A9A7A1" stroke="#121212" stroke-width="1.6"/>
+      <ellipse cx="120" cy="47" rx="14" ry="8" fill="url(#silver)" stroke="#121212" stroke-width="1.8"/>
+      <ellipse cx="114.5" cy="44.5" rx="4" ry="2" fill="#fff" opacity=".85"/>
+    </g>
+    <clipPath id="clipL" clipPathUnits="userSpaceOnUse"><rect x="-20" y="0" width="140" height="200"/></clipPath>
+    <clipPath id="clipR" clipPathUnits="userSpaceOnUse"><rect x="120" y="0" width="140" height="200"/></clipPath>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="eyebrow">EAT MAP · LOADING STUDY</div>
+  <h1>EAT MAP ローディング｜クローシュ5案</h1>
+  <p class="lead">選んでいただいた「クローシュオープン」を、開き方・湯気・余韻の違う5方向に磨きました。各案の「再生」で、表示時間だけローディングが出てから地図が開く流れを確かめられます。</p>
+</header>
+
+<div class="toolbar">
+  <div class="in">
+    <span class="lab">表示時間</span>
+    <div class="seg" role="group" aria-label="表示時間">
+      <button type="button" data-d="1200" aria-pressed="false">1.2秒</button>
+      <button type="button" data-d="1700" aria-pressed="true">1.7秒</button>
+      <button type="button" data-d="2400" aria-pressed="false">2.4秒</button>
+    </div>
+    <button type="button" class="allplay" id="allplay">全案を再生</button>
+  </div>
+</div>
+
+<main id="grid"></main>
+
+<div class="pickbar" id="pickbar">
+  <div class="in">
+    <span class="dot"></span>
+    <span class="lab">選択中</span>
+    <span class="val" id="pickval">まだ選んでいません</span>
+  </div>
+</div>
+
+<script>
+(() => {
+const INK = '#121212', G = '#1B8A3F';
+const OPEN = .56;              // ループ周期のうち「開ききる」位置。再生時はここが表示時間の終点になる
+let D = 1700;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const EZ = {
+  sine:'cubic-bezier(.37,0,.63,1)',
+  io:'cubic-bezier(.65,0,.35,1)',
+  out:'cubic-bezier(.22,1,.36,1)',
+  out5:'cubic-bezier(.16,1,.3,1)',
+  grav:'cubic-bezier(.5,0,.75,.35)',
+  std:'cubic-bezier(.4,0,.2,1)',
+  lin:'linear'
+};
+
+/* ---------- 共通の皿 ---------- */
+const PLATE = `
+  <ellipse cx="120" cy="187" rx="96" ry="6" fill="${INK}" opacity=".07"/>
+  <ellipse cx="120" cy="172" rx="110" ry="15" fill="#FBFAF7" stroke="${INK}" stroke-width="1.8"/>
+  <ellipse cx="120" cy="171" rx="82" ry="8.5" fill="none" stroke="#DAD7D0" stroke-width="1.5"/>
+  <ellipse class="csh tb" cx="120" cy="170" rx="100" ry="5.5" fill="${INK}" opacity=".16"/>`;
+const CL = `<use href="#cloche"/>`;
+const svg = inner => `<svg viewBox="0 0 240 200" aria-hidden="true">${PLATE}${inner}</svg>`;
+
+/* ---------- 料理 ---------- */
+const RAMEN = `<g class="dish tb" style="transform-origin:120px 168px">
+  <path d="M64 132 H176 C176 152 152 167 120 167 C88 167 64 152 64 132 Z" fill="#fff" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M73 146 C92 155 148 155 167 146" fill="none" stroke="${G}" stroke-width="2.4" stroke-linecap="round"/>
+  <ellipse cx="120" cy="132" rx="56" ry="9" fill="#EBDDBE" stroke="${INK}" stroke-width="1.8"/>
+  <path d="M78 134 c7 -4 13 3 20 0 s13 -4 20 0 s13 4 20 0" fill="none" stroke="#C9A866" stroke-width="1.6" stroke-linecap="round"/>
+  <rect x="91" y="113" width="13" height="19" rx="1.5" fill="#2E3A30" transform="rotate(-10 97 123)"/>
+  <ellipse cx="141" cy="129" rx="11" ry="6" fill="#fff" stroke="${INK}" stroke-width="1.5"/>
+  <ellipse cx="142" cy="129" rx="5" ry="3" fill="#E8A93A"/>
+  <circle cx="116" cy="130" r="2.2" fill="none" stroke="${G}" stroke-width="1.6"/>
+  <circle cx="123" cy="133" r="2.2" fill="none" stroke="${G}" stroke-width="1.6"/>
+  <circle cx="110" cy="134" r="2.2" fill="none" stroke="${G}" stroke-width="1.6"/>
+</g>`;
+
+const HAMBURG = `<g class="dish tb" style="transform-origin:120px 168px">
+  <ellipse cx="118" cy="160" rx="58" ry="7" fill="#7A5A44" opacity=".55"/>
+  <path d="M74 150 C74 132 96 124 120 124 C144 124 166 132 166 150 C166 160 146 165 120 165 C94 165 74 160 74 150 Z" fill="#5A4234" stroke="${INK}" stroke-width="1.8"/>
+  <path d="M86 141 C92 133 104 130 113 130" fill="none" stroke="#8C6B55" stroke-width="3" stroke-linecap="round"/>
+  <path d="M98 134 C92 122 108 114 120 118 C132 112 150 120 144 132 C140 142 104 143 98 134 Z" fill="#fff" stroke="${INK}" stroke-width="1.5"/>
+  <circle cx="121" cy="127" r="7" fill="#E9A93B"/>
+  <circle cx="118.6" cy="124.6" r="2" fill="#fff" opacity=".85"/>
+  <circle cx="171" cy="153" r="5.5" fill="#2C9A50"/><circle cx="163" cy="157" r="6" fill="${G}"/><circle cx="170" cy="161" r="5" fill="#157233"/>
+</g>`;
+
+const gyoza = x => `<g transform="translate(${x} 151)">
+  <path d="M0 0 C4 -19 30 -19 34 0 C24 4 10 4 0 0 Z" fill="#F5ECDA" stroke="${INK}" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M1.5 0.6 C11 4 23 4 32.5 0.6" fill="none" stroke="#C98E3F" stroke-width="3" stroke-linecap="round"/>
+  <path d="M10 -9 l1.6 -3.2 M17 -11 l.4 -3.4 M24 -9 l-1.4 -3.2" stroke="${INK}" stroke-width="1.3" stroke-linecap="round"/>
+</g>`;
+const GYOZA = `<g class="dish tb" style="transform-origin:120px 168px">
+  ${gyoza(63)}${gyoza(89)}${gyoza(115)}${gyoza(141)}
+  <circle cx="98" cy="140" r="1.8" fill="${G}"/><circle cx="124" cy="138" r="1.8" fill="${G}"/><circle cx="150" cy="141" r="1.8" fill="${G}"/>
+</g>`;
+
+const DON = `<g class="dish tb" style="transform-origin:120px 168px">
+  <path d="M70 132 H170 C170 154 148 168 120 168 C92 168 70 154 70 132 Z" fill="#fff" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/>
+  <circle cx="92" cy="150" r="2.2" fill="${G}"/><circle cx="106" cy="154" r="2.2" fill="${G}"/><circle cx="120" cy="155.5" r="2.2" fill="${G}"/><circle cx="134" cy="154" r="2.2" fill="${G}"/><circle cx="148" cy="150" r="2.2" fill="${G}"/>
+  <path d="M74 132 C78 112 98 104 120 104 C142 104 162 112 166 132 Z" fill="#FCFBF7" stroke="${INK}" stroke-width="1.8"/>
+  <path d="M128 126 C130 110 150 106 158 116 C152 126 140 129 128 126 Z" fill="${G}"/>
+  <path d="M90 124 C94 110 112 106 120 112 C114 122 102 127 90 124 Z" fill="#EE9670" stroke="${INK}" stroke-width="1.4"/>
+  <path d="M106 120 C112 106 130 104 136 112 C130 121 118 124 106 120 Z" fill="#F2A27E" stroke="${INK}" stroke-width="1.4"/>
+  <path d="M96 118 l10 -6 M114 114 l11 -6" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".9"/>
+</g>`;
+
+const PASTA = `<g class="dish tb" style="transform-origin:120px 168px">
+  <path d="M66 154 C70 130 98 120 120 120 C142 120 170 130 174 154 C150 164 90 164 66 154 Z" fill="#F0DFAE" stroke="${INK}" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M78 148 C92 134 110 132 124 140 S150 146 162 138" fill="none" stroke="#C7A862" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M86 138 C100 127 124 125 142 132" fill="none" stroke="#C7A862" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M96 153 C112 143 136 143 152 152" fill="none" stroke="#C7A862" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M101 129 C108 120 132 120 140 129 C134 136 107 136 101 129 Z" fill="#C8553D" stroke="${INK}" stroke-width="1.4"/>
+  <path d="M120 122 C116 114 124 108 130 110 C130 118 126 122 120 122 Z" fill="${G}"/>
+  <path d="M120 122 C112 118 108 112 112 108 C118 110 121 116 120 122 Z" fill="#2C9A50"/>
+</g>`;
+
+/* ---------- 光線（案4） ---------- */
+const RAYS = (() => {
+  let s = '';
+  for (let i = 0; i < 7; i++) {
+    const a = (-162 + i * 24) * Math.PI / 180;
+    const x1 = 120 + Math.cos(a) * 62, y1 = 136 + Math.sin(a) * 62;
+    const x2 = 120 + Math.cos(a) * 76, y2 = 136 + Math.sin(a) * 76;
+    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+  }
+  return s;
+})();
+const STAR = (x,y,s) => `<g transform="translate(${x} ${y}) scale(${s})"><path class="tw" d="M0 -6 C1 -1 1 -1 6 0 C1 1 1 1 0 6 C-1 1 -1 1 -6 0 C-1 -1 -1 -1 0 -6 Z" fill="${G}"/></g>`;
+
+/* ---------- 5案 ---------- */
+const V = [
+  {
+    name:'湯気ふわり', en:'Lift & Steam',
+    desc:'ひと呼吸おいて、静かに持ち上がる。開ききった後も少しだけ浮き続け、湯気が3筋ほどけていく。いちばん上品で落ち着いた案。',
+    spec:['小さな沈み込み','sineでゆっくり上昇','漂う余韻','湯気3筋'],
+    svg: svg(`${RAMEN}
+      <g class="steam s1">
+        <path class="wisp" d="M104 118 C97 108 111 100 104 89 C98 80 107 73 103 64"/>
+        <path class="wisp" d="M121 114 C114 103 128 94 121 82 C115 72 125 64 121 55"/>
+        <path class="wisp" d="M138 118 C131 108 145 100 138 89 C132 80 141 73 137 64"/>
+      </g>
+      <g class="cl tb" style="transform-origin:120px 166px">${CL}</g>`),
+    tracks:[
+      {sel:'.cl', f:[
+        [0,{transform:'translateY(0px) rotate(0deg)'}],
+        [.05,{transform:'translateY(0px) rotate(0deg)'},EZ.sine],
+        [.11,{transform:'translateY(1.5px) rotate(.4deg)'},'cubic-bezier(.45,.05,.2,1)'],
+        [.48,{transform:'translateY(-80px) rotate(-3deg)'},EZ.sine],
+        [.72,{transform:'translateY(-87px) rotate(-4deg)'},'cubic-bezier(.55,0,.3,1)'],
+        [.89,{transform:'translateY(0px) rotate(0deg)'},EZ.out],
+        [.92,{transform:'translateY(.8px) rotate(0deg)'},EZ.sine],
+        [1,{transform:'translateY(0px) rotate(0deg)'}]]},
+      {sel:'.csh', f:[[0,{opacity:.16}],[.05,{opacity:.16}],[.11,{opacity:.2},EZ.out],[.32,{opacity:0}],[.76,{opacity:0},EZ.std],[.89,{opacity:.16}],[1,{opacity:.16}]]},
+      {sel:'.steam', f:[[0,{opacity:0}],[.22,{opacity:0},EZ.sine],[.5,{opacity:1}],[.74,{opacity:1},EZ.sine],[.86,{opacity:0}],[1,{opacity:0}]]}
+    ]
+  },
+  {
+    name:'ヒンジオープン', en:'Hinge',
+    desc:'一度だけ中をのぞかせてから、奥の縁を支点にくるりと回転して開く。小さく2回弾んで止まり、湯気は泡の粒で立ちのぼる。',
+    spec:['のぞき見','縁を支点に60°回転','2段バウンド','粒の湯気'],
+    svg: svg(`${HAMBURG}
+      <g class="sz" stroke="#5D5A54" stroke-width="2" stroke-linecap="round">
+        <line class="fb" x1="84" y1="118" x2="78" y2="110"/>
+        <line class="fb" x1="103" y1="108" x2="101" y2="99"/>
+        <line class="fb" x1="138" y1="108" x2="140" y2="99"/>
+        <line class="fb" x1="157" y1="118" x2="163" y2="110"/>
+      </g>
+      <g class="steam">
+        <circle class="bub" cx="106" cy="114" r="3.2"/>
+        <circle class="bub" cx="124" cy="108" r="4.2"/>
+        <circle class="bub" cx="141" cy="115" r="2.8"/>
+        <circle class="bub" cx="115" cy="100" r="2.4"/>
+      </g>
+      <g class="cl tb" style="transform-origin:212px 168px">${CL}</g>`),
+    tracks:[
+      {sel:'.cl', f:[
+        [0,{transform:'rotate(0deg)'}],
+        [.06,{transform:'rotate(0deg)'},EZ.out],
+        [.10,{transform:'rotate(4deg)'},EZ.io],
+        [.15,{transform:'rotate(.5deg)'},'cubic-bezier(.5,0,.2,1)'],
+        [.40,{transform:'rotate(66deg)'},EZ.sine],
+        [.47,{transform:'rotate(57.5deg)'},EZ.sine],
+        [.53,{transform:'rotate(61deg)'},EZ.sine],
+        [.58,{transform:'rotate(60deg)'}],
+        [.72,{transform:'rotate(60deg)'},EZ.grav],
+        [.85,{transform:'rotate(0deg)'},EZ.out],
+        [.885,{transform:'rotate(-1.4deg)'},EZ.sine],
+        [.92,{transform:'rotate(0deg)'}],
+        [1,{transform:'rotate(0deg)'}]]},
+      {sel:'.csh', f:[[0,{opacity:.16}],[.15,{opacity:.16},EZ.std],[.3,{opacity:0}],[.76,{opacity:0},EZ.std],[.85,{opacity:.16}],[1,{opacity:.16}]]},
+      {sel:'.sz line', stagger:.025, f:[
+        [0,{opacity:0,transform:'scale(.3)'}],[.3,{opacity:0,transform:'scale(.3)'},EZ.out],
+        [.38,{opacity:1,transform:'scale(1)'},EZ.sine],[.52,{opacity:0,transform:'scale(1.25)'}],[1,{opacity:0,transform:'scale(1.25)'}]]},
+      {sel:'.steam', f:[[0,{opacity:0}],[.36,{opacity:0},EZ.sine],[.52,{opacity:1}],[.74,{opacity:1},EZ.sine],[.84,{opacity:0}],[1,{opacity:0}]]}
+    ]
+  },
+  {
+    name:'スプリット', en:'Split',
+    desc:'継ぎ目に一筋の光が走り、左右に割れて花びらのように傾く。同時に料理がわずかにせり上がり、湯気が左右対称に流れる。',
+    spec:['継ぎ目の光','左右に開く','料理がせり上がる','流れる湯気'],
+    svg: svg(`${GYOZA}
+      <g class="steam">
+        <path class="curl" pathLength="1" d="M108 134 C100 120 113 112 105 99 C99 90 90 92 92 99"/>
+        <path class="curl" pathLength="1" d="M132 134 C140 120 127 112 135 99 C141 90 150 92 148 99"/>
+        <path class="curl" pathLength="1" d="M90 138 C84 128 94 120 88 110"/>
+        <path class="curl" pathLength="1" d="M150 138 C156 128 146 120 152 110"/>
+      </g>
+      <g class="hl tb" style="transform-origin:30px 168px"><use href="#cloche" clip-path="url(#clipL)"/><line x1="120" y1="40" x2="120" y2="170" stroke="#7E7C77" stroke-width="1.2"/></g>
+      <g class="hr tb" style="transform-origin:210px 168px"><use href="#cloche" clip-path="url(#clipR)"/><line x1="120" y1="40" x2="120" y2="170" stroke="#7E7C77" stroke-width="1.2"/></g>
+      <line class="seam" x1="120" y1="40" x2="120" y2="168" pathLength="1" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-dasharray=".32 2" stroke-dashoffset=".35"/>`),
+    tracks:[
+      {sel:'.hl', f:[
+        [0,{transform:'translate(0px,0px) rotate(0deg)'}],
+        [.06,{transform:'translate(0px,0px) rotate(0deg)'},EZ.sine],
+        [.15,{transform:'translate(1.2px,0px) rotate(0deg)'},'cubic-bezier(.5,0,.1,1)'],
+        [.44,{transform:'translate(-40px,-6px) rotate(-17deg)'},EZ.sine],
+        [.5,{transform:'translate(-38px,-5px) rotate(-15.4deg)'},EZ.sine],
+        [.56,{transform:'translate(-38.5px,-5.5px) rotate(-16deg)'}],
+        [.72,{transform:'translate(-38.5px,-5.5px) rotate(-16deg)'},'cubic-bezier(.6,0,.35,1)'],
+        [.87,{transform:'translate(0px,0px) rotate(0deg)'},EZ.out],
+        [.9,{transform:'translate(.6px,0px) rotate(0deg)'},EZ.sine],
+        [1,{transform:'translate(0px,0px) rotate(0deg)'}]]},
+      {sel:'.hr', f:[
+        [0,{transform:'translate(0px,0px) rotate(0deg)'}],
+        [.06,{transform:'translate(0px,0px) rotate(0deg)'},EZ.sine],
+        [.15,{transform:'translate(-1.2px,0px) rotate(0deg)'},'cubic-bezier(.5,0,.1,1)'],
+        [.44,{transform:'translate(40px,-6px) rotate(17deg)'},EZ.sine],
+        [.5,{transform:'translate(38px,-5px) rotate(15.4deg)'},EZ.sine],
+        [.56,{transform:'translate(38.5px,-5.5px) rotate(16deg)'}],
+        [.72,{transform:'translate(38.5px,-5.5px) rotate(16deg)'},'cubic-bezier(.6,0,.35,1)'],
+        [.87,{transform:'translate(0px,0px) rotate(0deg)'},EZ.out],
+        [.9,{transform:'translate(-.6px,0px) rotate(0deg)'},EZ.sine],
+        [1,{transform:'translate(0px,0px) rotate(0deg)'}]]},
+      {sel:'.seam', f:[
+        [0,{opacity:0,strokeDashoffset:.35}],[.03,{opacity:0,strokeDashoffset:.35},EZ.lin],
+        [.04,{opacity:1,strokeDashoffset:.3},'cubic-bezier(.45,0,.25,1)'],
+        [.15,{opacity:1,strokeDashoffset:-1}],[.16,{opacity:0,strokeDashoffset:-1}],[1,{opacity:0,strokeDashoffset:-1}]]},
+      {sel:'.dish', f:[
+        [0,{transform:'translateY(6px) scale(.965)'}],[.2,{transform:'translateY(6px) scale(.965)'},EZ.out5],
+        [.52,{transform:'translateY(0px) scale(1)'}],[.72,{transform:'translateY(0px) scale(1)'},EZ.sine],
+        [.86,{transform:'translateY(6px) scale(.965)'}],[1,{transform:'translateY(6px) scale(.965)'}]]},
+      {sel:'.csh', f:[[0,{opacity:.16}],[.15,{opacity:.18},EZ.std],[.3,{opacity:0}],[.76,{opacity:0},EZ.std],[.87,{opacity:.16}],[1,{opacity:.16}]]},
+      {sel:'.steam', f:[[0,{opacity:0}],[.3,{opacity:0},EZ.sine],[.52,{opacity:1}],[.74,{opacity:1},EZ.sine],[.85,{opacity:0}],[1,{opacity:0}]]}
+    ]
+  },
+  {
+    name:'ホップ＆グロー', en:'Hop & Glow',
+    desc:'カタ、カタと2回小さく跳ね、ぐっと溜めてから真上へ抜ける。中から緑の光輪が広がり、料理のまわりに光の粒がまたたく。',
+    spec:['2回の小跳ね','溜めて抜ける','光輪と光線','光の粒'],
+    svg: svg(`<ellipse class="halo" cx="120" cy="128" rx="96" ry="70" fill="url(#warm)" opacity="0"/>
+      ${DON}
+      <circle class="ring tb" style="transform-origin:120px 136px" cx="120" cy="136" r="48" fill="none" stroke="${G}" stroke-width="2.2" opacity="0"/>
+      <g class="rays tb" style="transform-origin:120px 136px" stroke="${G}" stroke-width="2.2" stroke-linecap="round" opacity="0">${RAYS}</g>
+      <g class="steam">${STAR(72,104,1)}${STAR(170,96,.8)}${STAR(150,72,1.1)}${STAR(90,78,.7)}</g>
+      <g class="cl tb" style="transform-origin:120px 170px">${CL}</g>`),
+    tracks:[
+      {sel:'.cl', f:[
+        [0,{transform:'translateY(0px) scale(1,1)'}],
+        [.05,{transform:'translateY(0px) scale(1,1)'},'cubic-bezier(.3,0,.2,1)'],
+        [.085,{transform:'translateY(0px) scale(1.035,.95)'},'cubic-bezier(.2,.6,.35,1)'],
+        [.135,{transform:'translateY(-15px) scale(.985,1.025)'},'cubic-bezier(.55,0,.85,.35)'],
+        [.18,{transform:'translateY(0px) scale(1.03,.96)'},'cubic-bezier(.2,.6,.35,1)'],
+        [.215,{transform:'translateY(-6px) scale(1,1.01)'},'cubic-bezier(.55,0,.85,.35)'],
+        [.245,{transform:'translateY(0px) scale(1.02,.97)'},EZ.out],
+        [.29,{transform:'translateY(0px) scale(1.055,.91)'},'cubic-bezier(.12,.85,.25,1)'],
+        [.44,{transform:'translateY(-134px) scale(.9,.95)'}],
+        [.744,{transform:'translateY(-134px) scale(.9,.95)'},EZ.lin],
+        [.745,{transform:'translateY(-46px) scale(1,1)'},EZ.grav],
+        [.86,{transform:'translateY(0px) scale(1,1)'},EZ.out],
+        [.885,{transform:'translateY(0px) scale(1.035,.955)'},EZ.sine],
+        [.93,{transform:'translateY(0px) scale(1,1)'}],
+        [1,{transform:'translateY(0px) scale(1,1)'}]]},
+      {sel:'.cl', f:[[0,{opacity:1}],[.33,{opacity:1},'cubic-bezier(.4,0,1,1)'],[.42,{opacity:0}],[.745,{opacity:0},EZ.out],[.8,{opacity:1}],[1,{opacity:1}]]},
+      {sel:'.ring', f:[
+        [0,{opacity:0,transform:'scale(.45)'}],[.3,{opacity:0,transform:'scale(.45)'},'cubic-bezier(.2,.7,.3,1)'],
+        [.34,{opacity:.85,transform:'scale(.72)'},'cubic-bezier(.25,.8,.3,1)'],[.6,{opacity:0,transform:'scale(1.7)'}],[1,{opacity:0,transform:'scale(1.7)'}]]},
+      {sel:'.rays', f:[
+        [0,{opacity:0,transform:'scale(.6)'}],[.31,{opacity:0,transform:'scale(.6)'},EZ.out5],
+        [.4,{opacity:1,transform:'scale(1)'},EZ.sine],[.6,{opacity:0,transform:'scale(1.12)'}],[1,{opacity:0,transform:'scale(1.12)'}]]},
+      {sel:'.halo', f:[[0,{opacity:0}],[.3,{opacity:0},EZ.sine],[.46,{opacity:1}],[.74,{opacity:1},EZ.sine],[.86,{opacity:0}],[1,{opacity:0}]]},
+      {sel:'.dish', f:[[0,{transform:'scale(1)'}],[.3,{transform:'scale(1)'},EZ.out],[.38,{transform:'scale(1.04)'},EZ.sine],[.5,{transform:'scale(1)'}],[1,{transform:'scale(1)'}]]},
+      {sel:'.csh', f:[[0,{opacity:.16}],[.29,{opacity:.2},EZ.out],[.36,{opacity:0}],[.8,{opacity:0},EZ.std],[.86,{opacity:.16}],[1,{opacity:.16}]]},
+      {sel:'.steam', f:[[0,{opacity:0}],[.34,{opacity:0},EZ.sine],[.48,{opacity:1}],[.74,{opacity:1},EZ.sine],[.84,{opacity:0}],[1,{opacity:0}]]}
+    ]
+  },
+  {
+    name:'スライドアウト', en:'Slide away',
+    desc:'一瞬だけ引いて溜め、加速しながら横へ滑り去る。残像の線を残して消え、湯気はゆらぐ一筆書きの線で描かれていく。',
+    spec:['引いて溜める','加速して退場','残像ライン','一筆書きの湯気'],
+    svg: svg(`${PASTA}
+      <g class="steam"><g class="sway">
+        <path class="sl" pathLength="1" d="M112 118 C104 106 120 98 112 86 C105 76 118 68 112 58" fill="none" stroke="#A9A59D" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="1 1" stroke-dashoffset="1" opacity="0"/>
+        <path class="sl" pathLength="1" d="M132 120 C126 110 140 102 133 92 C127 84 137 78 133 70" fill="none" stroke="#A9A59D" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="1 1" stroke-dashoffset="1" opacity="0"/>
+      </g></g>
+      <g class="cl tb" style="transform-origin:120px 168px">
+        <g class="speed" stroke="#B9B5AD" stroke-width="2.6" stroke-linecap="round" opacity="0">
+          <line x1="16" y1="100" x2="-30" y2="100"/><line x1="8" y1="124" x2="-48" y2="124"/><line x1="18" y1="148" x2="-18" y2="148"/>
+        </g>
+        ${CL}
+      </g>`),
+    tracks:[
+      {sel:'.cl', f:[
+        [0,{transform:'translateX(0px) rotate(0deg)'}],
+        [.07,{transform:'translateX(0px) rotate(0deg)'},EZ.std],
+        [.17,{transform:'translateX(-12px) rotate(1.6deg)'},'cubic-bezier(.7,0,.25,1)'],
+        [.47,{transform:'translateX(330px) rotate(-3deg)'}],
+        [.744,{transform:'translateX(330px) rotate(-3deg)'},EZ.lin],
+        [.745,{transform:'translateX(-330px) rotate(3deg)'},EZ.out5],
+        [.9,{transform:'translateX(0px) rotate(0deg)'},EZ.sine],
+        [.93,{transform:'translateX(2px) rotate(-.4deg)'},EZ.sine],
+        [.96,{transform:'translateX(0px) rotate(0deg)'}],
+        [1,{transform:'translateX(0px) rotate(0deg)'}]]},
+      {sel:'.cl', f:[[0,{opacity:1}],[.34,{opacity:1},'cubic-bezier(.4,0,1,1)'],[.46,{opacity:0}],[.745,{opacity:0},EZ.out],[.82,{opacity:1}],[1,{opacity:1}]]},
+      {sel:'.speed', f:[[0,{opacity:0}],[.2,{opacity:0},EZ.out],[.28,{opacity:.9},EZ.sine],[.4,{opacity:0}],[1,{opacity:0}]]},
+      {sel:'.sl', stagger:.05, f:[
+        [0,{opacity:0,strokeDashoffset:1}],[.34,{opacity:0,strokeDashoffset:1},EZ.lin],
+        [.35,{opacity:1,strokeDashoffset:.97},'cubic-bezier(.3,0,.2,1)'],
+        [.6,{opacity:1,strokeDashoffset:0}],[.72,{opacity:1,strokeDashoffset:0},EZ.sine],
+        [.84,{opacity:0,strokeDashoffset:0}],[.85,{opacity:0,strokeDashoffset:1}],[1,{opacity:0,strokeDashoffset:1}]]},
+      {sel:'.csh', f:[[0,{opacity:.16}],[.17,{opacity:.18},EZ.std],[.3,{opacity:0}],[.8,{opacity:0},EZ.std],[.9,{opacity:.16}],[1,{opacity:.16}]]}
+    ]
+  }
+];
+
+const BAR = {sel:'.bar i', f:[
+  [0,{transform:'scaleX(0)',opacity:1}],
+  [.02,{transform:'scaleX(0)',opacity:1},'cubic-bezier(.3,.1,.3,1)'],
+  [OPEN,{transform:'scaleX(1)',opacity:1}],
+  [.76,{transform:'scaleX(1)',opacity:1},EZ.std],
+  [.82,{transform:'scaleX(1)',opacity:0}],
+  [.83,{transform:'scaleX(0)',opacity:0},EZ.std],
+  [.92,{transform:'scaleX(0)',opacity:1}],
+  [1,{transform:'scaleX(0)',opacity:1}]]};
+
+/* ---------- 下のアプリ画面 ---------- */
+const PIN = (x,y,c) => `<g transform="translate(${x} ${y})"><path d="M0 0 C-7 -9 -10 -13 -10 -18 A10 10 0 1 1 10 -18 C10 -13 7 -9 0 0 Z" fill="${c}"/><circle cy="-18" r="3.6" fill="#fff"/></g>`;
+const MAP = `<svg viewBox="0 0 340 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <rect width="340" height="240" fill="#E5E1D8"/>
+  <path d="M206 -10 C226 50 214 100 246 140 C270 172 300 190 350 196 L350 -10 Z" fill="#D6E2D2"/>
+  <path d="M-10 168 C60 150 110 186 170 176 S280 140 350 150" fill="none" stroke="#D2D9DA" stroke-width="16"/>
+  <g stroke="#FBFAF7" stroke-linecap="round" fill="none">
+    <path d="M-10 60 L350 92" stroke-width="12"/>
+    <path d="M110 -10 L84 250" stroke-width="12"/>
+    <path d="M-10 128 L200 140 L350 112" stroke-width="7"/>
+    <path d="M190 -10 L232 250" stroke-width="7"/>
+    <path d="M30 -10 L40 250 M270 -10 L300 250" stroke-width="5"/>
+  </g>
+  ${PIN(150,96,G)}${PIN(250,70,G)}${PIN(58,154,G)}${PIN(214,190,G)}
+  <g transform="translate(120 128)">
+    <rect x="-38" y="-62" width="76" height="28" rx="14" fill="${INK}"/>
+    <text x="0" y="-43" text-anchor="middle" font-size="13" font-weight="700" fill="#F1EFEA" font-family="-apple-system,'Hiragino Sans',sans-serif">こがね 4.6</text>
+    <path d="M0 0 C-7 -9 -10 -13 -10 -18 A10 10 0 1 1 10 -18 C10 -13 7 -9 0 0 Z" fill="${INK}"/><circle cy="-18" r="3.6" fill="#fff"/>
+  </g>
+  <circle cx="176" cy="160" r="16" fill="${G}" opacity=".16"/><circle cx="176" cy="160" r="6" fill="${G}" stroke="#fff" stroke-width="2.5"/>
+</svg>`;
+const ICON_BOWL = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11h18a9 9 0 0 1-18 0Z"/><path d="M9 7c-1-1.5 1-2.5 0-4M14 7c-1-1.5 1-2.5 0-4"/></svg>`;
+const ICON_TRAY = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="9" cy="12" r="2.6"/><path d="M14 10h4M14 14h4"/></svg>`;
+const ICON_CUP = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5Z"/><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 6c-.6-1 .6-1.8 0-3M12 6c-.6-1 .6-1.8 0-3"/></svg>`;
+const row = (ic,n,m,r) => `<div class="row"><div class="thumb">${ic}</div><div class="rt"><b>${n}</b><span>${m}</span></div><div class="rate">★ ${r}</div></div>`;
+const APP = `<div class="app">
+  <div class="a-head ai"><div class="logo"><i></i>EAT MAP</div><div class="me"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${INK}" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" stroke-linecap="round"/></svg></div></div>
+  <div class="search ai"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5D5A54" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>エリア・料理・駅名で探す</div>
+  <div class="chips ai"><span class="chip on">すべて</span><span class="chip">ラーメン</span><span class="chip">定食</span><span class="chip">カフェ</span><span class="chip">居酒屋</span></div>
+  <div class="map ai">${MAP}</div>
+  <div class="sheet ai">
+    <div class="sh-h"><b>近くのお店</b><span>12件</span></div>
+    ${row(ICON_BOWL,'麺処 こがね','ラーメン · 徒歩4分','4.6')}
+    ${row(ICON_TRAY,'定食 ひより','定食 · 徒歩6分','4.4')}
+    ${row(ICON_CUP,'喫茶 ミナト','カフェ · 徒歩9分','4.5')}
+  </div>
+</div>`;
+const SB = `<div class="sb"><span>9:41</span><span class="ic">
+  <svg width="18" height="12" viewBox="0 0 18 12" fill="${INK}"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+  <svg width="16" height="12" viewBox="0 0 16 12" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"><path d="M1.5 4.5a9.5 9.5 0 0 1 13 0M4 7.3a6 6 0 0 1 8 0"/><circle cx="8" cy="10" r="1.2" fill="${INK}" stroke="none"/></svg>
+  <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x=".75" y=".75" width="21.5" height="11.5" rx="3.5" stroke="${INK}" stroke-opacity=".4" stroke-width="1.5"/><rect x="3" y="3" width="15" height="7" rx="1.6" fill="${INK}"/><path d="M24 4.5v4" stroke="${INK}" stroke-opacity=".4" stroke-width="1.6" stroke-linecap="round"/></svg>
+</span></div>`;
+
+/* ---------- 組み立て ---------- */
+const grid = document.getElementById('grid');
+const cards = V.map((v,i) => {
+  const el = document.createElement('article');
+  el.className = 'card';
+  el.innerHTML = `
+    <div class="c-head">
+      <div class="c-no">案${i+1}<span>${v.en}</span></div>
+      <h2>${v.name}</h2>
+      <p class="desc">${v.desc}</p>
+      <div class="spec">${v.spec.map(s=>`<span>${s}</span>`).join('')}</div>
+    </div>
+    <div class="phone"><div class="screen">
+      <div class="island"></div>${SB}${APP}
+      <div class="ov" aria-label="ローディング画面">
+        <div class="stage">${v.svg}</div>
+        <div class="brand">
+          <div class="wm">EAT MAP</div>
+          <div class="tag">お店を探しています</div>
+          <div class="bar"><i></i></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="acts">
+      <button type="button" class="btn play">再生</button>
+      <button type="button" class="btn pick">これにする</button>
+    </div>
+    <button type="button" class="back">ループ表示に戻す</button>`;
+  grid.appendChild(el);
+  const c = {v, i, el, ov:el.querySelector('.ov'), stage:el.querySelector('.stage'), brand:el.querySelector('.brand'),
+    app:el.querySelector('.app'), playBtn:el.querySelector('.play'), anims:[], extra:[], timers:[], state:'loop', visible:true};
+  c.playBtn.addEventListener('click', () => play(c));
+  el.querySelector('.pick').addEventListener('click', () => select(i));
+  el.querySelector('.back').addEventListener('click', () => toLoop(c, true));
+  return c;
+});
+
+/* keyframes: [offset, props, easing] → WAAPI。staggerでオフセットをずらす */
+function frames(arr, shift){
+  let prev = -1;
+  return arr.map(([o,p,e]) => {
+    let off = (shift && o > 0 && o < 1) ? Math.min(.995, o + shift) : o;
+    if (off <= prev) off = Math.min(1, prev + .001);
+    prev = off;
+    const k = Object.assign({offset:off}, p);
+    if (e) k.easing = e;
+    return k;
+  });
+}
+function stopTL(c){ c.anims.forEach(a => a.cancel()); c.anims = []; }
+function clearExtra(c){ c.extra.forEach(a => a.cancel()); c.extra = []; c.timers.forEach(clearTimeout); c.timers = []; }
+function startTL(c, loop){
+  stopTL(c);
+  if (reduce) return;
+  const opts = {duration: D / OPEN, iterations: loop ? Infinity : 1, fill:'both'};
+  [...c.v.tracks, BAR].forEach(t => {
+    c.ov.querySelectorAll(t.sel).forEach((node, j) => {
+      const a = node.animate(frames(t.f, (t.stagger || 0) * j), opts);
+      if (loop && !c.visible) a.pause();
+      c.anims.push(a);
+    });
+  });
+}
+function ui(c){
+  c.playBtn.textContent = c.state === 'playing' ? '再生中…' : c.state === 'shown' ? 'もう一度再生' : `再生（${(D/1000).toFixed(1)}秒）`;
+  c.el.classList.toggle('shown', c.state === 'shown');
+}
+function toLoop(c, fadeIn){
+  clearExtra(c);
+  c.state = 'loop';
+  c.ov.style.visibility = 'visible';
+  startTL(c, true);
+  if (fadeIn && !reduce) c.extra.push(c.ov.animate([{opacity:0},{opacity:1}], {duration:420, easing:EZ.sine}));
+  ui(c);
+}
+function play(c){
+  clearExtra(c);
+  c.state = 'playing';
+  c.ov.style.visibility = 'visible';
+  ui(c);
+  startTL(c, false);
+  c.timers.push(setTimeout(() => {
+    // 表示時間ちょうどで退場開始。中の動きは止めずに減速させて余韻を残す
+    c.anims.forEach(a => { try { a.updatePlaybackRate(.35); } catch(_) { a.playbackRate = .35; } });
+    const std = EZ.std;
+    c.extra.push(c.ov.animate([{opacity:1},{opacity:0}], {duration:reduce?200:580, easing:std, fill:'forwards'}));
+    if (!reduce) {
+      c.extra.push(c.stage.animate([{transform:'translateY(0px) scale(1)'},{transform:'translateY(-10px) scale(1.07)'}], {duration:760, easing:EZ.out, fill:'forwards'}));
+      c.extra.push(c.brand.animate([{opacity:1,transform:'translateY(0px)'},{opacity:0,transform:'translateY(6px)'}], {duration:300, easing:std, fill:'forwards'}));
+      c.app.querySelectorAll('.ai').forEach((n, j) => c.extra.push(
+        n.animate([{opacity:0,transform:'translateY(14px)'},{opacity:1,transform:'translateY(0px)'}],
+          {duration:680, delay:120 + j*55, easing:EZ.out, fill:'backwards'})));
+    }
+    c.timers.push(setTimeout(() => {
+      stopTL(c);
+      c.ov.style.visibility = 'hidden';
+      c.state = 'shown';
+      ui(c);
+    }, reduce ? 220 : 620));
+  }, D));
+}
+
+/* 画面外のループは止める */
+const io = new IntersectionObserver(es => es.forEach(e => {
+  const c = cards.find(k => k.el.querySelector('.phone') === e.target);
+  if (!c) return;
+  c.visible = e.isIntersecting;
+  if (c.state === 'loop') c.anims.forEach(a => c.visible ? a.play() : a.pause());
+}), {rootMargin:'80px'});
+cards.forEach(c => io.observe(c.el.querySelector('.phone')));
+
+/* 表示時間 */
+const segBtns = document.querySelectorAll('.seg button');
+segBtns.forEach(b => b.addEventListener('click', () => {
+  D = +b.dataset.d;
+  segBtns.forEach(x => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+  cards.forEach(c => { if (c.state === 'loop') startTL(c, true); ui(c); });
+  renderPick();
+}));
+document.getElementById('allplay').addEventListener('click', () => cards.forEach(play));
+
+/* 選択バー */
+let sel = null;
+try { const s = localStorage.getItem('eatmap-cloche-pick'); if (s !== null && V[+s]) sel = +s; } catch(_) {}
+const bar = document.getElementById('pickbar'), val = document.getElementById('pickval');
+function renderPick(bump){
+  cards.forEach(c => {
+    c.el.classList.toggle('sel', c.i === sel);
+    c.el.querySelector('.pick').textContent = c.i === sel ? '✓ 選択中' : 'これにする';
+  });
+  bar.classList.toggle('has', sel !== null);
+  val.textContent = sel === null ? 'まだ選んでいません'
+    : `案${sel+1}「${V[sel].name}」 · 表示 ${(D/1000).toFixed(1)}秒`;
+  if (bump) { val.classList.remove('bump'); void val.offsetWidth; val.classList.add('bump'); }
+}
+function select(i){
+  sel = i;
+  try { localStorage.setItem('eatmap-cloche-pick', String(i)); } catch(_) {}
+  renderPick(true);
+}
+
+cards.forEach(c => toLoop(c, false));
+renderPick();
+})();
+</script>
+</body>
+</html>
